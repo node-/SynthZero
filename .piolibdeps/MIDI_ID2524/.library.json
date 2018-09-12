@@ -1,0 +1,52 @@
+{
+    "name": "MIDI", 
+    "repository": {
+        "url": "https://os.mbed.com/users/okini3939/code/MIDI/", 
+        "type": "hg"
+    }, 
+    "platforms": [
+        "atmelsam", 
+        "freescalekinetis", 
+        "maxim32", 
+        "nordicnrf51", 
+        "nordicnrf52", 
+        "nxplpc", 
+        "siliconlabsefm32", 
+        "ststm32", 
+        "teensy", 
+        "wiznet7500"
+    ], 
+    "frameworks": [
+        "mbed"
+    ], 
+    "version": "0eeca7deec", 
+    "examples": [
+        "https://os.mbed.com/users/okini3939/code/MIDI_sample/", 
+        "https://os.mbed.com/users/okini3939/code/MIDI_usb_bridge/", 
+        "https://os.mbed.com/users/kayekss/code/MIDI_Interpreter/", 
+        "https://os.mbed.com/users/kanaya/code/midi-timer/", 
+        "https://os.mbed.com/users/gkmaro634/code/eVY1test/", 
+        "https://os.mbed.com/users/ChuckTimber/code/MIDI_CW/", 
+        "https://os.mbed.com/users/casiotone401/code/CVtoOSCConverter/", 
+        "https://os.mbed.com/users/casiotone401/code/OSCtoCVConverter/"
+    ], 
+    "authors": [
+        {
+            "url": "https://os.mbed.com/users/okini3939/", 
+            "maintainer": false, 
+            "email": null, 
+            "name": "Suga koubou"
+        }
+    ], 
+    "keywords": [
+        "midi", 
+        "uart", 
+        "note", 
+        "pitch", 
+        "velocity", 
+        "serial", 
+        "channel"
+    ], 
+    "id": 2524, 
+    "description": "Ported from Arduino MIDI library Orignal: http://www.arduino.cc/playground/Main/MIDILibrary use Serial (UART)"
+}
