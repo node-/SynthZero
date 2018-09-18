@@ -1,90 +1,76 @@
-
-/*  Example of a sound being triggered by MIDI input.
+/*  Example of filtering a wave,
+    using Mozzi sonification library.
   
-    Demonstrates playing notes with Mozzi in response to MIDI input,
-    using the version of the Arduino MIDI library which
-    works with Teensy boards (https://www.pjrc.com/teensy/td_midi.html).  
-    Tested on a Teensy2++, which can be used as a MIDI device 
-    without any extra parts.  
-    The sketch would be almost the same with the mainstream
-    MIDI library (using MIDI as a prefix to calls instead of usbMIDI).
-    This sketch won't compile on the Teensy2++ if you also 
-    have the mainstream MIDI library installed.
+    Demonstrates LowPassFilter().
   
-    Circuit: On the Teensy2++, audio output is on pin B5.  Midi input on usb.
+    Circuit: Audio output on digital pin 9 on a Uno or similar, or
+    DAC/A14 on Teensy 3.1, or 
+    check the README or https://sensorium.github.com/Mozzi/
   
     Mozzi help/discussion/announcements:
     https://groups.google.com/forum/#!forum/mozzi-users
   
-    Tim Barrass 2013, CC by-nc-sa.
+    Tim Barrass 2012, CC by-nc-sa.
 */
 
 //#include <ADC.h>  // Teensy 3.1 uncomment this line and install https://github.com/pedvide/ADC
-#include <MIDI.h>
-
 #include <MozziGuts.h>
-#include <Oscil.h> // oscillator template
-#include <tables/sin2048_int8.h> // sine table for oscillator
-#include <mozzi_midi.h>
-#include <ADSR.h>
+#include <Oscil.h>
+#include <tables/chum9_int8.h> // recorded audio wavetable
+#include <tables/cos2048_int8.h> // for filter modulation
+#include <LowPassFilter.h>
+#include <mozzi_rand.h>
 
+#define CONTROL_RATE 64 // powers of 2 please
+#define POT_PIN 2
+#define BUTTON1_PIN 2
+#define BUTTON2_PIN 3
 
-// use #define for CONTROL_RATE, not a constant
-#define CONTROL_RATE 128 // powers of 2 please
+Oscil<CHUM9_NUM_CELLS, AUDIO_RATE> aCrunchySound(CHUM9_DATA);
+Oscil<COS2048_NUM_CELLS, CONTROL_RATE> kFilterMod(COS2048_DATA);
 
+int val = 0;
+LowPassFilter lpf;
+bool button1 = 0, button2 = 0;
 
-// audio sinewave oscillator
-Oscil <SIN2048_NUM_CELLS, AUDIO_RATE> aSin(SIN2048_DATA);
-
-// envelope generator
-ADSR <CONTROL_RATE, AUDIO_RATE> envelope;
-
-const struct Pins {
-  int button0 = 7,
-      button1 = 8,
-      led = 12,
-      ldr = 1,
-      thermistor = 2;
-} pin;
-
-void HandleNoteOn(byte channel, byte note, byte velocity) { 
-  //aSin.setFreq(mtof(note)); // simple but less accurate frequency
-  aSin.setFreq_Q16n16(Q16n16_mtof(Q8n0_to_Q16n16(note))); // accurate frequency
-  envelope.noteOn();
-  digitalWrite(pin.led,HIGH);
+void setup(){
+  Serial.begin(9600);
+  startMozzi(CONTROL_RATE);
+  aCrunchySound.setFreq(2.f);
+  kFilterMod.setFreq(1.3f);
+  lpf.setResonance(200);
 }
 
-void HandleNoteOff(byte channel, byte note, byte velocity) { 
-  envelope.noteOff();
-  digitalWrite(pin.led,LOW);
+void loop(){
+  audioHook();
 }
-
-void setup() {
-  pinMode(pin.led, OUTPUT);   
-
-  // Connect the HandleNoteOn function to the library, so it is called upon reception of a NoteOn.
-  usbMIDI.setHandleNoteOn(HandleNoteOn);  // Put only the name of the function
-  usbMIDI.setHandleNoteOff(HandleNoteOff);  // Put only the name of the function
-
-  envelope.setADLevels(255,64);
-  envelope.setTimes(50,200,10000,200); // 10000 is so the note will sustain 10 seconds unless a noteOff comes
-
-  aSin.setFreq(440); // default frequency
-  startMozzi(CONTROL_RATE); 
-}
-
 
 void updateControl(){
-  usbMIDI.read();
-  envelope.update();
+  if (rand(CONTROL_RATE/2) == 0){ // about once every half second
+    button1 = digitalRead(BUTTON1_PIN);
+    button2 = digitalRead(BUTTON2_PIN);
+    val = analogRead(POT_PIN);
+    kFilterMod.setFreq((float)val/64);  // choose a new modulation frequency
+    
+    Serial.print("val: ");
+    Serial.println(val);
+    Serial.print("val/64: ");
+    Serial.println((float)val/64);
+    Serial.print("b1: ");
+    Serial.println(button1);
+    Serial.print("b2: ");
+    Serial.println(button2);
+    Serial.println("");
+  }
+  if (button1 && button2) {
+    // map the modulation into the filter range (0-255)
+    //byte cutoff_freq = 100 + kFilterMod.next()/2;
+    byte cuttoff_freq = ((float)val/64);
+    lpf.setCutoffFreq(cutoff_freq);
+  }
 }
-
 
 int updateAudio(){
-  return (int) (envelope.next() * aSin.next())>>8;
+  char asig = lpf.next(aCrunchySound.next());
+  return (int) asig;
 }
-
-
-void loop() {
-  audioHook(); // required here
-} 
